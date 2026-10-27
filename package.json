@@ -1,0 +1,13 @@
+{
+  "name": "cimethese",
+  "version": "1.0.0",
+  "description": "Cimethèse - Requiem pour les thèses parties trop tôt",
+  "scripts": {
+    "dev": "node outils/serveur-local.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.6"
+  },
+  "private": true,
+  "type": "module"
+}

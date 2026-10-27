@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Modération — Cimethèse</title>
+<meta name="theme-color" content="#13110E">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<script src="/commun.js" defer></script>
+<style>
+  .onglets{display:flex;gap:.6rem;flex-wrap:wrap;margin:1.5rem 0 2rem}
+  .onglets button[aria-selected=true]{border-color:var(--gilt);color:var(--bone)}
+  .fiche{border:1px solid var(--line);padding:1.4rem;margin-bottom:1.6rem;background:rgba(33,28,22,.45)}
+  .fiche .entete{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem 1rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;color:var(--bone-dim);margin-bottom:1rem}
+  .fiche .entete a{word-break:break-all}
+  .fiche .mot{font-style:italic;color:var(--bone-dim);border-left:1px solid var(--line-2);padding-left:.8rem;margin-bottom:1rem;white-space:pre-wrap}
+  .fiche .form{gap:1rem;margin-top:0}
+  .fiche .champ > label{font-size:.66rem}
+  .fiche input[type=text],.fiche select,.fiche textarea{font-size:1rem;padding:.55rem .7rem}
+  .trois{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem}
+  .actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1rem}
+  .btn.danger{border-color:rgba(201,130,107,.45);color:var(--alert)}
+  .btn.danger:hover{background:var(--alert);color:var(--ink)}
+  .ligne{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:1rem 0}
+  .ligne .t{font-size:1.05rem;max-width:44ch}
+  .ligne .m{font-family:var(--mono);font-size:.7rem;color:var(--bone-dim);letter-spacing:.05em}
+  .apercu .grave{padding:1rem 0 0}
+  .apercu .stele{max-width:400px;padding:2.6rem 1.8rem 1.8rem}
+  .vide-liste{color:var(--bone-dim);font-style:italic;padding:1rem 0}
+  #connexion{max-width:380px;margin:12vh 0}
+  @media (max-width:560px){.trois{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="barre">
+    <a class="marque" href="/">Cime<span>thèse</span></a>
+    <a href="#" id="deconnexion" hidden>Se déconnecter</a>
+  </div>
+
+  <main class="page">
+    <form id="connexion" class="form">
+      <h2>Modération</h2>
+      <div class="champ">
+        <label for="mdp">Mot de passe</label>
+        <input type="password" id="mdp" autocomplete="current-password" required style="width:100%;background:var(--ink-2);border:1px solid var(--line-2);color:var(--bone);font-size:1.1rem;padding:.75rem .9rem">
+      </div>
+      <div id="retour-connexion" role="status"></div>
+      <div><button class="btn plein" type="submit">Entrer</button></div>
+    </form>
+
+    <section id="espace" hidden>
+      <h2>Modération</h2>
+      <div class="onglets" role="tablist">
+        <button class="btn" role="tab" id="t-attente" aria-selected="true">En attente <span class="cnum" id="n-attente">0</span></button>
+        <button class="btn" role="tab" id="t-publiees" aria-selected="false">Publiées <span class="cnum" id="n-publiees">0</span></button>
+        <button class="btn" type="button" id="rafraichir">↻ Actualiser</button>
+      </div>
+      <div id="retour" role="status" aria-live="polite"></div>
+      <div id="liste-attente"></div>
+      <div id="liste-publiees" hidden>
+        <div class="champ" style="margin-bottom:1rem">
+          <label for="recherche">Retrouver une tombe (titre, nom ou adresse e-mail)</label>
+          <input type="text" id="recherche" placeholder="Pour une demande de retrait, par exemple">
+        </div>
+        <div id="publiees"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const $ = (id) => document.getElementById(id);
+  const el = (balise, attrs = {}, ...enfants) => {
+    const n = document.createElement(balise);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") n.className = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else if (v !== undefined && v !== null && v !== false) n.setAttribute(k, v === true ? "" : v);
+    }
+    enfants.flat().forEach((e) => n.append(e?.nodeType ? e : document.createTextNode(e ?? "")));
+    return n;
+  };
+  let mdp = sessionStorage.getItem("cimethese_admin") || "";
+  let donnees = { attente: [], publiees: [] };
+
+  const api = async (corps) => {
+    const r = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${mdp}` },
+      body: JSON.stringify(corps),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401) { deconnecter(); throw new Error(d.erreur || "Mot de passe incorrect."); }
+    if (!r.ok) throw new Error(d.erreur || "Erreur du serveur.");
+    return d;
+  };
+
+  const dire = (cible, texte, erreur = false) => {
+    cible.replaceChildren();
+    if (texte) cible.append(el("p", { class: "message" + (erreur ? " erreur" : "") }, texte));
+    if (texte && !erreur) setTimeout(() => cible.replaceChildren(), 3500);
+  };
+
+  const date = (iso) => iso ? new Date(iso).toLocaleString("fr-BE", { dateStyle: "medium", timeStyle: "short" }) : "";
+  const libNommage = { nom: "Nom complet", prenom: "Prénom", initiales: "Initiales", anonyme: "Anonyme" };
+
+  // Éditeur d'une tombe (avant ou après publication)
+  const editeur = (d, publie) => {
+    const champs = {
+      titre: el("textarea", { rows: 2, maxlength: 180 }),
+      epitaphe: el("textarea", { rows: 3, maxlength: 240 }),
+      debut: el("input", { type: "text", inputmode: "numeric", maxlength: 4 }),
+      fin: el("input", { type: "text", inputmode: "numeric", maxlength: 4 }),
+      discipline: el("input", { type: "text", maxlength: 60 }),
+      nommage: el("select", {}, Object.entries(libNommage).map(([v, l]) => el("option", { value: v }, l))),
+      nom: el("input", { type: "text", maxlength: 60 }),
+    };
+    for (const k of Object.keys(champs)) champs[k].value = d[k] ?? "";
+    const lire = () => Object.fromEntries(Object.entries(champs).map(([k, c]) => [k, c.value.trim()]));
+    const apercu = el("div", { class: "apercu" });
+    const maj = () => {
+      const v = lire();
+      champs.nom.disabled = v.nommage === "anonyme";
+      apercu.replaceChildren(fabriquerStele({ ...v, nom: v.nommage === "anonyme" ? "" : v.nom }, { niveauTitre: "p" }));
+    };
+    Object.values(champs).forEach((c) => { c.addEventListener("input", maj); c.addEventListener("change", maj); });
+    maj();
+    const lab = (t, c) => el("div", { class: "champ" }, el("label", {}, t), c);
+    const bloc = el("div", { class: "form" },
+      lab("Titre", champs.titre),
+      lab("Épitaphe", champs.epitaphe),
+      el("div", { class: "trois" }, lab("✳ Début", champs.debut), lab("† Arrêt", champs.fin), lab("Discipline", champs.discipline)),
+      el("div", { class: "deux" }, lab("Signature", champs.nommage), lab("Nom affiché", champs.nom)),
+      apercu,
+    );
+    return { bloc, lire };
+  };
+
+  const ficheAttente = (d) => {
+    const { bloc, lire } = editeur(d, false);
+    const retour = el("div", { role: "status" });
+    const sujet = encodeURIComponent(`Cimethèse : votre épitaphe « ${d.titre.slice(0, 60)} »`);
+    const fiche = el("article", { class: "fiche" },
+      el("div", { class: "entete" },
+        el("span", {}, `Reçu le ${date(d.recuLe)} · ${libNommage[d.nommage] || ""}`),
+        el("a", { href: `mailto:${d.contact}?subject=${sujet}` }, d.contact)),
+      d.mot ? el("p", { class: "mot" }, `Mot de la personne : ${d.mot}`) : "",
+      bloc,
+      retour,
+      el("div", { class: "actions" },
+        el("button", { class: "btn plein", type: "button", onclick: async (e) => {
+          e.target.disabled = true;
+          try { await api({ action: "publier", id: d.id, modifs: lire() }); await charger("Tombe gravée dans l'allée."); }
+          catch (err) { dire(retour, err.message, true); e.target.disabled = false; }
+        } }, "Publier"),
+        el("button", { class: "btn danger", type: "button", onclick: async (e) => {
+          if (!confirm("Refuser ce dépôt ? Il sera effacé définitivement, adresse comprise.")) return;
+          e.target.disabled = true;
+          try { await api({ action: "supprimer", id: d.id }); await charger("Dépôt refusé et effacé."); }
+          catch (err) { dire(retour, err.message, true); e.target.disabled = false; }
+        } }, "Refuser et effacer"),
+      ),
+    );
+    return fiche;
+  };
+
+  const lignePubliee = (d) => {
+    const zone = el("div");
+    const retour = el("div", { role: "status" });
+    const ligne = el("div", { class: "ligne" },
+      el("div", {},
+        el("div", { class: "t" }, d.titre),
+        el("div", { class: "m" }, `✳ ${d.debut} † ${d.fin} · ${d.nom || "Anonyme"} · 🕯️ ${d.bougies} · publiée le ${date(d.publieLe)} · ${d.contact}`)),
+      el("div", { class: "actions", style: "margin:0" },
+        el("button", { class: "btn", type: "button", onclick: () => {
+          if (zone.firstChild) return zone.replaceChildren();
+          const { bloc, lire } = editeur(d, true);
+          zone.replaceChildren(el("div", { class: "fiche" }, bloc,
+            el("div", { class: "actions" },
+              el("button", { class: "btn plein", type: "button", onclick: async () => {
+                try { await api({ action: "modifier", id: d.id, modifs: lire() }); await charger("Modification enregistrée."); }
+                catch (err) { dire(retour, err.message, true); }
+              } }, "Enregistrer"))));
+        } }, "Modifier"),
+        el("button", { class: "btn", type: "button", onclick: async () => {
+          if (!confirm("Retirer cette tombe de l'allée ? Elle repassera en attente (les bougies sont conservées).")) return;
+          try { await api({ action: "depublier", id: d.id }); await charger("Tombe remise en attente."); }
+          catch (err) { dire(retour, err.message, true); }
+        } }, "Dépublier"),
+        el("button", { class: "btn danger", type: "button", onclick: async () => {
+          if (!confirm("Droit de retrait : effacer définitivement cette tombe, ses bougies et l'adresse de contact ?")) return;
+          try { await api({ action: "supprimer", id: d.id }); await charger("Tombe et données effacées."); }
+          catch (err) { dire(retour, err.message, true); }
+        } }, "Effacer"),
+      ),
+    );
+    return el("div", { "data-recherche": `${d.titre} ${d.nom || ""} ${d.contact}`.toLowerCase() }, ligne, retour, zone);
+  };
+
+  const afficher = () => {
+    $("n-attente").textContent = donnees.attente.length;
+    $("n-publiees").textContent = donnees.publiees.length;
+    $("liste-attente").replaceChildren(...(donnees.attente.length
+      ? donnees.attente.map(ficheAttente)
+      : [el("p", { class: "vide-liste" }, "Aucun dépôt en attente.")]));
+    $("publiees").replaceChildren(...(donnees.publiees.length
+      ? donnees.publiees.map(lignePubliee)
+      : [el("p", { class: "vide-liste" }, "Aucune tombe publiée pour l'instant.")]));
+    filtrer();
+  };
+
+  const filtrer = () => {
+    const q = $("recherche").value.trim().toLowerCase();
+    $("publiees").querySelectorAll("[data-recherche]").forEach((n) => { n.hidden = q && !n.dataset.recherche.includes(q); });
+  };
+  $("recherche").addEventListener("input", filtrer);
+
+  const charger = async (message) => {
+    try {
+      donnees = await api({ action: "liste" });
+      afficher();
+      if (message) dire($("retour"), message);
+    } catch (err) { dire($("retour"), err.message, true); }
+  };
+
+  const onglet = (quel) => {
+    $("t-attente").setAttribute("aria-selected", String(quel === "attente"));
+    $("t-publiees").setAttribute("aria-selected", String(quel === "publiees"));
+    $("liste-attente").hidden = quel !== "attente";
+    $("liste-publiees").hidden = quel !== "publiees";
+  };
+  $("t-attente").addEventListener("click", () => onglet("attente"));
+  $("t-publiees").addEventListener("click", () => onglet("publiees"));
+  $("rafraichir").addEventListener("click", () => charger("Liste actualisée."));
+
+  const entrer = async () => {
+    $("connexion").hidden = true; $("espace").hidden = false; $("deconnexion").hidden = false;
+    await charger();
+  };
+  const deconnecter = () => {
+    mdp = ""; sessionStorage.removeItem("cimethese_admin");
+    $("connexion").hidden = false; $("espace").hidden = true; $("deconnexion").hidden = true;
+  };
+  $("deconnexion").addEventListener("click", (e) => { e.preventDefault(); deconnecter(); });
+
+  $("connexion").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    mdp = $("mdp").value;
+    try {
+      await api({ action: "liste" });
+      sessionStorage.setItem("cimethese_admin", mdp);
+      $("mdp").value = "";
+      await entrer();
+    } catch (err) { dire($("retour-connexion"), err.message, true); }
+  });
+
+  if (mdp) entrer();
+});
+</script>
+</body>
+</html>

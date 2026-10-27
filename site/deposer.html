@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graver une épitaphe — Cimethèse</title>
+<meta name="description" content="Déposer le témoignage d'une thèse interrompue en droit ou en criminologie.">
+<meta name="theme-color" content="#13110E">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<script src="/commun.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="barre">
+    <a class="marque" href="/">Cime<span>thèse</span></a>
+    <a href="/">← L'allée</a>
+  </div>
+
+  <main class="page" id="contenu">
+    <h2>Graver une épitaphe</h2>
+    <p class="chapo">Vous avez commencé une thèse en droit ou en criminologie, et elle s'est arrêtée. Elle mérite une tombe.</p>
+    <p>Nous ne vous demandons pas un récit, mais une phrase : la raison de l'arrêt, dans vos mots. La contrainte fait l'épitaphe. Votre témoignage sera relu avant d'apparaître dans l'allée, et vous pourrez le faire retirer à tout moment.</p>
+
+    <form class="form" id="formulaire" novalidate>
+      <div class="champ">
+        <label for="titre">Titre de la thèse</label>
+        <span class="aide" id="aide-titre">Tel qu'il aurait figuré en couverture, ou votre meilleure approximation.</span>
+        <textarea id="titre" name="titre" rows="2" maxlength="180" required aria-describedby="aide-titre compte-titre"></textarea>
+        <span class="compte" id="compte-titre" aria-live="polite"></span>
+      </div>
+
+      <div class="champ">
+        <label for="epitaphe">L'épitaphe</label>
+        <span class="aide" id="aide-epitaphe">En une ou deux phrases : pourquoi ça s'est arrêté ? Évitez de nommer des personnes.</span>
+        <textarea id="epitaphe" name="epitaphe" rows="3" maxlength="240" required aria-describedby="aide-epitaphe compte-epitaphe"></textarea>
+        <span class="compte" id="compte-epitaphe" aria-live="polite"></span>
+      </div>
+
+      <div class="deux">
+        <div class="champ">
+          <label for="debut">✳ Première inscription</label>
+          <select id="debut" name="debut" required><option value="">Année</option></select>
+        </div>
+        <div class="champ">
+          <label for="fin">† Arrêt</label>
+          <select id="fin" name="fin" required><option value="">Année</option></select>
+        </div>
+      </div>
+
+      <div class="champ">
+        <label for="discipline">Discipline</label>
+        <select id="discipline" name="discipline" required>
+          <option value="">Choisir</option>
+          <option>Droit</option>
+          <option>Criminologie</option>
+          <option value="Autre">Autre discipline</option>
+        </select>
+        <input type="text" id="autreDiscipline" name="autreDiscipline" class="cache" maxlength="60" placeholder="Laquelle ?" aria-label="Préciser la discipline">
+      </div>
+
+      <fieldset class="champ">
+        <legend>Comment signer votre tombe ?</legend>
+        <label class="choix"><input type="radio" name="nommage" value="nom"> <span>Nom complet</span></label>
+        <label class="choix"><input type="radio" name="nommage" value="prenom"> <span>Prénom seulement</span></label>
+        <label class="choix"><input type="radio" name="nommage" value="initiales"> <span>Initiales</span></label>
+        <label class="choix"><input type="radio" name="nommage" value="anonyme"> <span>Anonymat</span></label>
+        <input type="text" id="nom" name="nom" class="cache" maxlength="60" aria-label="Nom à afficher">
+      </fieldset>
+
+      <div class="champ">
+        <label for="contact">Votre adresse e-mail</label>
+        <span class="aide" id="aide-contact">Jamais publiée. Elle sert uniquement à vous écrire si une modification s'impose avant publication, et à vérifier qu'une demande de retrait vient bien de vous.</span>
+        <input type="email" id="contact" name="contact" maxlength="120" autocomplete="email" required aria-describedby="aide-contact">
+      </div>
+
+      <div class="champ">
+        <label for="mot">Un mot pour nous <span class="aide">(facultatif, jamais publié)</span></label>
+        <textarea id="mot" name="mot" rows="3" maxlength="1000"></textarea>
+      </div>
+
+      <div class="piege" aria-hidden="true">
+        <label for="site">Ne pas remplir</label>
+        <input type="text" id="site" name="site" tabindex="-1" autocomplete="off">
+      </div>
+
+      <p class="apercu-titre" aria-hidden="true">Votre tombe, telle qu'elle apparaîtra</p>
+      <div class="apercu" id="apercu" aria-hidden="true"></div>
+
+      <fieldset class="champ">
+        <legend class="sr">Consentements</legend>
+        <label class="choix"><input type="checkbox" id="consentAuteur"> <span>Je suis l'auteur·rice de cette thèse et je dépose ce témoignage pour moi-même.</span></label>
+        <label class="choix"><input type="checkbox" id="consentPublication"> <span>J'accepte que cette tombe soit publiée sur Cimethèse telle qu'elle apparaît ci-dessus, après relecture.</span></label>
+        <label class="choix"><input type="checkbox" id="consentDonnees"> <span>J'ai lu la page <a href="/a-propos#vie-privee" target="_blank" rel="noopener">vie privée</a> et j'accepte que mon adresse soit conservée pour les seules finalités indiquées.</span></label>
+      </fieldset>
+
+      <div id="retour" role="status" aria-live="polite"></div>
+      <div><button class="btn plein" type="submit" id="envoyer">Déposer pour relecture</button></div>
+    </form>
+
+    <div class="encart">
+      <p>Vous déposez au nom d'une personne disparue, ou votre situation ne rentre pas dans ce formulaire ? Écrivez-nous : <a data-contact href="#">…</a></p>
+      <p>Si vous traversez une période difficile, vous pouvez parler à quelqu'un, gratuitement et à toute heure : Centre de Prévention du Suicide, <a href="tel:080032123">0800 32 123</a> (Zelfmoordlijn <a href="tel:1813">1813</a> en néerlandais).</p>
+    </div>
+  </main>
+
+  <footer class="pied">
+    <nav aria-label="Pages du site">
+      <a href="/">L'allée</a>
+      <a href="/deposer">Graver une épitaphe</a>
+      <a href="/a-propos">À propos &amp; vie privée</a>
+    </nav>
+    Contact et droit de retrait : <a data-contact href="#">…</a>
+  </footer>
+</div>
+
+<!-- Formulaire invisible servant uniquement à prévenir la modération par e-mail
+     (Netlify Forms). Il ne transporte aucune donnée personnelle. -->
+<form name="nouveau-depot" data-netlify="true" netlify-honeypot="miel" hidden>
+  <input type="hidden" name="form-name" value="nouveau-depot">
+  <input name="signal"><input name="miel">
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const ouvertA = Date.now();
+  const f = document.getElementById("formulaire");
+  const $ = (id) => document.getElementById(id);
+
+  // Années disponibles
+  const max = new Date().getFullYear();
+  for (const sel of [$("debut"), $("fin")]) {
+    for (let a = max; a >= 1960; a--) sel.add(new Option(a, a));
+  }
+
+  // Compteurs de caractères
+  const compter = (id, limite) => {
+    const champ = $(id), sortie = $(`compte-${id}`);
+    const maj = () => {
+      const reste = limite - champ.value.length;
+      sortie.textContent = `${champ.value.length} / ${limite}`;
+      sortie.classList.toggle("limite", reste < 20);
+    };
+    champ.addEventListener("input", maj); maj();
+  };
+  compter("titre", 180);
+  compter("epitaphe", 240);
+
+  // Champs conditionnels
+  $("discipline").addEventListener("change", () => {
+    $("autreDiscipline").classList.toggle("cache", $("discipline").value !== "Autre");
+  });
+  const exemples = { nom: "Prénom Nom", prenom: "Prénom", initiales: "Ex. A. D." };
+  f.querySelectorAll("[name=nommage]").forEach((r) => r.addEventListener("change", () => {
+    const v = f.nommage.value;
+    $("nom").classList.toggle("cache", v === "anonyme" || !v);
+    $("nom").placeholder = exemples[v] || "";
+    if (v !== "anonyme") $("nom").focus();
+  }));
+
+  // Aperçu vivant de la stèle
+  const lire = () => {
+    const nommage = f.nommage.value;
+    const disc = $("discipline").value === "Autre" ? $("autreDiscipline").value.trim() : $("discipline").value;
+    return {
+      titre: $("titre").value.trim(),
+      epitaphe: $("epitaphe").value.trim(),
+      debut: $("debut").value,
+      fin: $("fin").value,
+      discipline: disc,
+      nommage,
+      nom: nommage === "anonyme" ? "" : $("nom").value.trim(),
+      autreDiscipline: $("autreDiscipline").value.trim(),
+    };
+  };
+  const apercu = () => {
+    const t = lire();
+    $("apercu").replaceChildren(fabriquerStele({ ...t, nom: t.nom || (t.nommage && t.nommage !== "anonyme" ? "…" : "") }, { niveauTitre: "p" }));
+  };
+  f.addEventListener("input", apercu);
+  f.addEventListener("change", apercu);
+  apercu();
+
+  const dire = (texte, erreur = false) => {
+    $("retour").replaceChildren();
+    if (!texte) return;
+    const p = document.createElement("p");
+    p.className = "message" + (erreur ? " erreur" : "");
+    p.textContent = texte;
+    $("retour").append(p);
+  };
+
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const t = lire();
+    const manque = [];
+    if (t.titre.length < 3) manque.push("le titre");
+    if (t.epitaphe.length < 3) manque.push("l'épitaphe");
+    if (!t.debut || !t.fin) manque.push("les années");
+    else if (+t.fin < +t.debut) manque.push("une année d'arrêt postérieure au début");
+    if (!$("discipline").value || ($("discipline").value === "Autre" && !t.autreDiscipline)) manque.push("la discipline");
+    if (!t.nommage) manque.push("la façon de signer");
+    else if (t.nommage !== "anonyme" && !t.nom) manque.push("le nom à afficher");
+    if (!$("contact").checkValidity() || !$("contact").value) manque.push("une adresse e-mail valide");
+    if (!$("consentAuteur").checked || !$("consentPublication").checked || !$("consentDonnees").checked) manque.push("les trois consentements");
+    if (manque.length) return dire(`Il manque encore : ${manque.join(", ")}.`, true);
+
+    const bouton = $("envoyer");
+    bouton.disabled = true; bouton.textContent = "Envoi…";
+    try {
+      const r = await fetch("/api/depot", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          titre: t.titre, epitaphe: t.epitaphe, debut: t.debut, fin: t.fin,
+          discipline: $("discipline").value, autreDiscipline: t.autreDiscipline,
+          nommage: t.nommage, nom: t.nom, contact: $("contact").value.trim(), mot: $("mot").value,
+          consentAuteur: $("consentAuteur").checked, consentPublication: $("consentPublication").checked,
+          consentDonnees: $("consentDonnees").checked, site: $("site").value, ouvertDepuis: Date.now() - ouvertA,
+        }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.erreur || "L'envoi n'a pas abouti.");
+
+      // Prévenir la modération (sans aucune donnée du dépôt).
+      fetch("/", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: "form-name=nouveau-depot&signal=1" }).catch(() => {});
+
+      f.replaceChildren();
+      const fin = document.createElement("div");
+      fin.className = "encart";
+      fin.innerHTML = "<p><strong>Merci.</strong> Votre épitaphe est bien arrivée. Elle sera relue, puis gravée dans l'allée. Si une modification nous semble nécessaire, nous vous écrirons avant de publier.</p><p><a href=\"/\">Retourner dans l'allée</a></p>";
+      f.append(fin);
+      window.scrollTo({ top: f.offsetTop - 40, behavior: "smooth" });
+    } catch (err) {
+      dire(err.message, true);
+      bouton.disabled = false; bouton.textContent = "Déposer pour relecture";
+    }
+  });
+});
+</script>
+</body>
+</html>

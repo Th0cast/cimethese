@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cimethèse — Requiem pour les thèses parties trop tôt</title>
+<meta name="description" content="Un cimetière en ligne des thèses abandonnées en droit et en criminologie. Ici, on leur donne une sépulture.">
+<meta property="og:title" content="Cimethèse — Requiem pour les thèses parties trop tôt">
+<meta property="og:description" content="Pour les thèses défendues, il y a les cérémonies. Pour les autres, il n'y avait rien. Ici, on leur donne une sépulture.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#13110E">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<script src="/commun.js" defer></script>
+</head>
+<body class="voile">
+<div class="wrap">
+
+  <header class="hero">
+    <div class="cadre">
+      <div class="eyebrow">Contre-archive · Droit &amp; criminologie</div>
+      <h1>Cime<span class="seam">thèse</span></h1>
+      <p class="sub">Requiem pour les thèses parties trop tôt.</p>
+      <p class="frame">Pour les thèses défendues, il y a les cérémonies, les fleurs, les posts LinkedIn. Pour les autres — abandonnées, avortées, mort-nées — il n'y a rien. Ni certificat de décès, ni tombe, ni deuil possible. Ici, on leur donne une sépulture.</p>
+    </div>
+    <a class="scrollcue" href="#allee">Descendre dans l'allée</a>
+  </header>
+
+  <main class="field" id="allee" aria-live="polite">
+    <p class="sr" id="chargement">Chargement des tombes…</p>
+  </main>
+
+  <section class="outro grave" id="fin">
+    <p class="lead">La recherche académique a un <em>biais des survivants.</em></p>
+    <p>Chaque personne qui accède à un poste pérenne efface le nom de dizaines d'autres qui, au carrefour de la précarité, de la classe, du genre, de la santé et de l'appartenance aux réseaux, disparaissent sans laisser de trace. Ce dispositif entend leur rendre leur voix.</p>
+    <p class="tally" id="total-bougies" hidden>Dans l'allée, <b>🕯️ <span id="total">0</span> <span id="total-mot">bougies</span></b> <span id="total-verbe">ont été allumées</span>.</p>
+    <a class="btn plein" href="/deposer">Graver une épitaphe</a>
+  </section>
+
+  <footer class="pied">
+    <nav aria-label="Pages du site">
+      <a href="/">L'allée</a>
+      <a href="/deposer">Graver une épitaphe</a>
+      <a href="/a-propos">À propos &amp; vie privée</a>
+    </nav>
+    <strong>Cimethèse</strong> — contre-archive des thèses interrompues en droit et en criminologie.<br>
+    Contact et droit de retrait : <a data-contact href="#">…</a>
+  </footer>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const allee = document.getElementById("allee");
+  const reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const allumees = memoire.lire("cimethese_bougies", {}); // { idTombe: cléBougie }
+
+  const reveler = (() => {
+    if (reduit || !("IntersectionObserver" in window)) return (n) => n.classList.add("seen");
+    const io = new IntersectionObserver((entrees) => {
+      entrees.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("seen"); io.unobserve(e.target); } });
+    }, { threshold: 0.15 });
+    return (n) => io.observe(n);
+  })();
+  reveler(document.getElementById("fin"));
+
+  const majTotal = () => {
+    const t = [...document.querySelectorAll(".candle .cnum")].reduce((s, n) => s + (parseInt(n.textContent, 10) || 0), 0);
+    document.getElementById("total").textContent = t;
+    document.getElementById("total-mot").textContent = t > 1 ? "bougies" : "bougie";
+    document.getElementById("total-verbe").textContent = t > 1 ? "ont été allumées" : "a été allumée";
+    document.getElementById("total-bougies").hidden = t === 0;
+  };
+
+  const brancherBougie = (article, tombe) => {
+    const btn = article.querySelector(".candle");
+    const num = btn.querySelector(".cnum");
+    const txt = btn.querySelector(".ctxt");
+    const rendre = () => {
+      const allume = Boolean(allumees[tombe.id]);
+      btn.classList.toggle("lit", allume);
+      btn.setAttribute("aria-pressed", String(allume));
+      txt.textContent = allume ? "Bougie allumée" : "Allumer une bougie";
+    };
+    rendre();
+    btn.addEventListener("click", async () => {
+      const allume = Boolean(allumees[tombe.id]);
+      btn.disabled = true;
+      // Affichage immédiat, corrigé par la réponse du serveur.
+      num.textContent = Math.max(0, (parseInt(num.textContent, 10) || 0) + (allume ? -1 : 1));
+      const avant = allumees[tombe.id];
+      if (allume) delete allumees[tombe.id]; else allumees[tombe.id] = "en-cours";
+      rendre(); majTotal();
+      try {
+        const r = await fetch("/api/bougie", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(allume ? { id: tombe.id, sens: -1, cle: avant } : { id: tombe.id, sens: 1 }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erreur);
+        if (!allume) allumees[tombe.id] = d.cle;
+        num.textContent = d.bougies;
+      } catch {
+        if (allume) allumees[tombe.id] = avant; else delete allumees[tombe.id];
+        num.textContent = Math.max(0, (parseInt(num.textContent, 10) || 0) + (allume ? 1 : -1));
+      }
+      memoire.ecrire("cimethese_bougies", allumees);
+      btn.disabled = false;
+      rendre(); majTotal();
+    });
+  };
+
+  const tombeVide = (texte) => {
+    const a = fabriquerStele({ titre: texte, epitaphe: "", debut: "", fin: "", discipline: "", nom: "" }, {});
+    a.querySelector(".stele").classList.add("vide");
+    a.querySelector(".epitaph").remove();
+    a.querySelector(".years").remove();
+    a.querySelector(".inscr").remove();
+    return a;
+  };
+
+  try {
+    const r = await fetch("/api/tombes");
+    if (!r.ok) throw new Error();
+    const { tombes } = await r.json();
+    allee.textContent = "";
+    if (!tombes.length) {
+      const a = tombeVide("Les premières épitaphes sont en train d'être gravées.");
+      allee.append(a); reveler(a);
+    }
+    tombes.forEach((t) => {
+      const a = fabriquerStele(t, { bougie: true });
+      brancherBougie(a, t);
+      allee.append(a);
+      reveler(a);
+    });
+    majTotal();
+  } catch {
+    allee.textContent = "";
+    const a = tombeVide("L'allée ne répond pas. Revenez dans un instant.");
+    allee.append(a); reveler(a);
+  }
+});
+</script>
+</body>
+</html>
