@@ -2,7 +2,7 @@
 
 // Adresse de contact affichée sur le site (retraits, vie privée, questions).
 window.CIMETHESE = {
-  contact: "contact@cimethese.be", // À REMPLACER si une autre adresse est retenue
+  contact: "contact@cimethese.com",
 };
 
 // Fabrique la stèle d'une tombe (utilisée par l'allée, l'aperçu et l'admin).
